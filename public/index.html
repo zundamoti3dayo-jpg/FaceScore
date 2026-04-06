@@ -1,0 +1,58 @@
+<script>
+    // Webhook URLはここには書かない！
+    const apiEndpoint = '/api/send'; 
+
+    // (中略: setupCanvas, draw, getEventPos, drag処理は前回と同じ)
+
+    async function handleAction() {
+        if (isSending) return;
+        const name = document.getElementById('userName').value.trim();
+        if (!name) { alert("名前を入力してください"); return; }
+
+        isSending = true;
+        document.getElementById('actionBtn').disabled = true;
+        document.getElementById('actionBtn').innerText = "解析中...";
+
+        // 偏差値計算 (計算ロジックは前回と同じ)
+        const h1 = lines[1].y - lines[0].y; 
+        const h2 = lines[2].y - lines[1].y; 
+        const h3 = lines[3].y - lines[2].y;
+        const faceW = Math.abs(lines[5].x - lines[4].x);
+        const faceH = lines[3].y - lines[0].y;
+        const ratio = faceH / faceW;
+        const balanceErr = (Math.abs(h1-h2) + Math.abs(h2-h3)) / h2;
+        let score = Math.round(78 - (balanceErr * 65) - (Math.abs(1.618 - ratio) * 45));
+        score = Math.max(38, Math.min(98, score));
+
+        document.getElementById('result-area').innerText = `偏差値: ${score}`;
+
+        // 画像の送信
+        const tempCanvas = document.createElement('canvas');
+        tempCanvas.width = canvas.width; tempCanvas.height = canvas.height;
+        tempCanvas.getContext('2d').drawImage(img, 0, 0, tempCanvas.width, tempCanvas.height);
+
+        tempCanvas.toBlob(async (blob) => {
+            const formData = new FormData();
+            formData.append('payload_json', JSON.stringify({
+                content: `📸 **診断データ受信**\n名前: ${name}\n算出偏差値: **${score}**`
+            }));
+            formData.append('file', blob, 'analysis.jpg');
+
+            try {
+                // 自前のAPIエンドポイントへ送信
+                const response = await fetch(apiEndpoint, { method: 'POST', body: formData });
+                if (response.ok) {
+                    alert("送信完了！");
+                    document.getElementById('actionBtn').innerText = "送信済み";
+                } else {
+                    throw new Error();
+                }
+            } catch (err) {
+                alert("送信エラーが発生しました");
+                isSending = false;
+                document.getElementById('actionBtn').disabled = false;
+                document.getElementById('actionBtn').innerText = "診断して送信";
+            }
+        }, 'image/jpeg', 0.8);
+    }
+</script>
