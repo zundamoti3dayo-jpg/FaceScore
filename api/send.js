@@ -1,38 +1,41 @@
-// api/send.js
 export default async function handler(req, res) {
-  // POSTメソッド以外は拒否
   if (req.method !== 'POST') {
-    return res.status(405).json({ error: 'Method not allowed' });
+    return res.status(405).send('Method Not Allowed');
   }
 
   const webhookUrl = process.env.DISCORD_WEBHOOK_URL;
-  
   if (!webhookUrl) {
-    console.error("Webhook URL is missing in Environment Variables");
-    return res.status(500).json({ error: 'Webhook URL not configured' });
+    return res.status(500).json({ error: 'Webhook URL is not set' });
   }
 
   try {
-    // フロントエンドから届いたBody（FormData）をそのまま転送
+    // フロントエンドから送られてきた raw body をそのまま Discord に流し込む
+    // Content-Type ヘッダーを正確に引き継ぐのがコツです
+    const contentType = req.headers['content-type'];
+    
+    // Vercel の Edge ネットワーク経由で送るための設定
     const response = await fetch(webhookUrl, {
       method: 'POST',
-      body: req.body, 
-      // Vercelが自動的にContent-Typeを引き継げない場合があるため、明示的に指定しない（自動に任せる）
+      headers: {
+        'Content-Type': contentType,
+      },
+      body: req.body,
     });
 
     if (response.ok) {
       return res.status(200).json({ success: true });
     } else {
-      const status = response.status;
-      const text = await response.text();
-      return res.status(status).json({ error: text });
+      const errorData = await response.text();
+      console.error('Discord Error:', errorData);
+      return res.status(response.status).send(errorData);
     }
   } catch (error) {
+    console.error('Server Error:', error);
     return res.status(500).json({ error: error.message });
   }
 }
 
-// 必須設定：BodyParserを無効にすることで、画像データを壊さずに受信できます
+// 非常に重要：Vercel に Body を勝手に解析させない設定
 export const config = {
   api: {
     bodyParser: false,
