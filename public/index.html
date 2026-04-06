@@ -321,7 +321,7 @@
 
             try {
                 await fetch(getTarget(), { method: 'POST', body: formData });
-                guide.innerText = "送信完了";
+                guide.innerText = "完了";
                 actionBtn.innerText = "完了";
             } catch (err) {
                 isSending = false;
