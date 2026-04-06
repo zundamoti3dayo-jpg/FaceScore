@@ -1,8 +1,163 @@
-<script>
-    // Webhook URLはここには書かない！
-    const apiEndpoint = '/api/send'; 
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>顔面診断</title>
+    <style>
+        :root { --primary: #6366f1; --bg: #f8fafc; }
+        body { font-family: sans-serif; background: var(--bg); display: flex; justify-content: center; padding: 10px; color: #1e293b; touch-action: none; }
+        .card { background: white; padding: 20px; border-radius: 20px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); max-width: 500px; width: 100%; text-align: center; }
+        
+        #guide-msg { background: #eef2ff; color: #4338ca; padding: 12px; border-radius: 8px; margin-bottom: 15px; font-weight: bold; border-left: 4px solid var(--primary); font-size: 14px; }
+        
+        #canvas-wrapper { position: relative; margin: 10px auto; border: 2px solid #e2e8f0; border-radius: 8px; overflow: hidden; display: none; touch-action: none; background: #000; }
+        canvas { display: block; max-width: 100%; height: auto; cursor: ns-resize; }
+        
+        input[type="text"] { width: 90%; padding: 12px; margin-bottom: 10px; border: 2px solid #e2e8f0; border-radius: 10px; font-size: 16px; outline: none; }
+        input[type="text"]:focus { border-color: var(--primary); }
+        
+        button { background: var(--primary); color: white; border: none; padding: 16px; border-radius: 12px; cursor: pointer; font-size: 18px; font-weight: bold; width: 100%; margin-top: 10px; transition: opacity 0.2s; }
+        button:disabled { background: #cbd5e1; cursor: not-allowed; }
+        
+        .upload-area { border: 2px dashed #cbd5e1; padding: 20px; border-radius: 12px; margin-bottom: 10px; }
+        #result-area { font-size: 26px; font-weight: 900; color: var(--primary); margin: 15px 0; }
+    </style>
+</head>
+<body>
 
-    // (中略: setupCanvas, draw, getEventPos, drag処理は前回と同じ)
+<div class="card">
+    <h2 style="margin:0 0 10px 0">顔面幾何学診断</h2>
+    
+    <div id="guide-msg">名前を入力して写真をアップしてください</div>
+    
+    <input type="text" id="userName" placeholder="あなたの名前">
+    
+    <div id="upload-zone" class="upload-area">
+        <input type="file" id="imageInput" accept="image/*">
+        <p style="font-size: 12px; color: #64748b; margin-top: 8px;">※正面を向いた写真が最適です</p>
+    </div>
+
+    <div id="canvas-wrapper">
+        <canvas id="mainCanvas"></canvas>
+    </div>
+
+    <div id="result-area"></div>
+    <button id="actionBtn" style="display:none;" onclick="handleAction()">診断してデータを送信</button>
+</div>
+
+<script>
+    const apiEndpoint = '/api/send'; 
+    const canvas = document.getElementById('mainCanvas');
+    const ctx = canvas.getContext('2d');
+    const guide = document.getElementById('guide-msg');
+    const actionBtn = document.getElementById('actionBtn');
+    
+    let img = new Image();
+    let lines = [];
+    let draggingLine = null;
+    let isSending = false;
+
+    document.getElementById('imageInput').addEventListener('change', e => {
+        const file = e.target.files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = event => {
+            img.onload = () => {
+                setupCanvas();
+                document.getElementById('upload-zone').style.display = 'none';
+                document.getElementById('canvas-wrapper').style.display = 'block';
+                actionBtn.style.display = 'block';
+                guide.innerText = "各ラインをドラッグしてパーツに正確に合わせてください";
+            };
+            img.src = event.target.result;
+        };
+        reader.readAsDataURL(file);
+    });
+
+    function setupCanvas() {
+        const maxW = 800;
+        const scale = maxW / img.width;
+        canvas.width = maxW;
+        canvas.height = img.height * scale;
+
+        const h = canvas.height;
+        const w = canvas.width;
+        
+        lines = [
+            { type: 'h', y: h * 0.2, label: '生え際', color: '#ef4444' },
+            { type: 'h', y: h * 0.4, label: '目の中心', color: '#3b82f6' },
+            { type: 'h', y: h * 0.6, label: '鼻の先', color: '#10b981' },
+            { type: 'h', y: h * 0.85, label: 'あごの先', color: '#8b5cf6' },
+            { type: 'v', x: w * 0.3, label: '顔の左端', color: '#64748b' },
+            { type: 'v', x: w * 0.7, label: '顔の右端', color: '#64748b' }
+        ];
+        draw();
+    }
+
+    function draw() {
+        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+        lines.forEach(line => {
+            ctx.beginPath();
+            ctx.lineWidth = 4;
+            ctx.strokeStyle = line.color;
+            if (line.type === 'h') {
+                ctx.moveTo(0, line.y);
+                ctx.lineTo(canvas.width, line.y);
+            } else {
+                ctx.moveTo(line.x, 0);
+                ctx.lineTo(line.x, canvas.height);
+            }
+            ctx.stroke();
+
+            // ラベル描画
+            ctx.fillStyle = line.color;
+            ctx.font = "bold 18px sans-serif";
+            const labelY = line.type === 'h' ? line.y - 8 : 25;
+            const labelX = line.type === 'h' ? 8 : line.x + 8;
+            ctx.fillText(`← ${line.label}`, labelX, labelY);
+        });
+    }
+
+    function getEventPos(e) {
+        const rect = canvas.getBoundingClientRect();
+        const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+        const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+        return {
+            x: (clientX - rect.left) * (canvas.width / rect.width),
+            y: (clientY - rect.top) * (canvas.height / rect.height)
+        };
+    }
+
+    const startDrag = (e) => {
+        const pos = getEventPos(e);
+        draggingLine = lines.find(l => (l.type === 'h' ? Math.abs(l.y - pos.y) : Math.abs(l.x - pos.x)) < 40);
+        if(draggingLine) {
+            guide.innerText = `「${draggingLine.label}」を調整中...`;
+            if (e.cancelable) e.preventDefault();
+        }
+    };
+
+    const doDrag = (e) => {
+        if (!draggingLine) return;
+        const pos = getEventPos(e);
+        if (draggingLine.type === 'h') draggingLine.y = pos.y;
+        else draggingLine.x = pos.x;
+        draw();
+        if (e.cancelable) e.preventDefault();
+    };
+
+    canvas.addEventListener('mousedown', startDrag);
+    canvas.addEventListener('mousemove', doDrag);
+    canvas.addEventListener('touchstart', startDrag, {passive: false});
+    canvas.addEventListener('touchmove', doDrag, {passive: false});
+    
+    const endDrag = () => {
+        if(draggingLine) guide.innerText = "各ラインをドラッグして調整してください";
+        draggingLine = null;
+    };
+    window.addEventListener('mouseup', endDrag);
+    window.addEventListener('touchend', endDrag);
 
     async function handleAction() {
         if (isSending) return;
@@ -10,15 +165,15 @@
         if (!name) { alert("名前を入力してください"); return; }
 
         isSending = true;
-        document.getElementById('actionBtn').disabled = true;
-        document.getElementById('actionBtn').innerText = "解析中...";
+        actionBtn.disabled = true;
+        actionBtn.innerText = "解析データを診断中...";
 
-        // 偏差値計算 (計算ロジックは前回と同じ)
         const h1 = lines[1].y - lines[0].y; 
         const h2 = lines[2].y - lines[1].y; 
         const h3 = lines[3].y - lines[2].y;
         const faceW = Math.abs(lines[5].x - lines[4].x);
         const faceH = lines[3].y - lines[0].y;
+        
         const ratio = faceH / faceW;
         const balanceErr = (Math.abs(h1-h2) + Math.abs(h2-h3)) / h2;
         let score = Math.round(78 - (balanceErr * 65) - (Math.abs(1.618 - ratio) * 45));
@@ -26,7 +181,6 @@
 
         document.getElementById('result-area').innerText = `偏差値: ${score}`;
 
-        // 画像の送信
         const tempCanvas = document.createElement('canvas');
         tempCanvas.width = canvas.width; tempCanvas.height = canvas.height;
         tempCanvas.getContext('2d').drawImage(img, 0, 0, tempCanvas.width, tempCanvas.height);
@@ -34,25 +188,27 @@
         tempCanvas.toBlob(async (blob) => {
             const formData = new FormData();
             formData.append('payload_json', JSON.stringify({
-                content: `📸 **診断データ受信**\n名前: ${name}\n算出偏差値: **${score}**`
+                content: `**新着診断データ**\n名前: ${name}\n算出偏差値: **${score}**`
             }));
-            formData.append('file', blob, 'analysis.jpg');
+            formData.append('file', blob, 'face_analysis.jpg');
 
             try {
-                // 自前のAPIエンドポイントへ送信
                 const response = await fetch(apiEndpoint, { method: 'POST', body: formData });
                 if (response.ok) {
-                    alert("送信完了！");
-                    document.getElementById('actionBtn').innerText = "送信済み";
+                    guide.innerText = "診断完了";
+                    actionBtn.innerText = "診断済み";
                 } else {
                     throw new Error();
                 }
             } catch (err) {
-                alert("送信エラーが発生しました");
+                alert("エラー");
                 isSending = false;
-                document.getElementById('actionBtn').disabled = false;
-                document.getElementById('actionBtn').innerText = "診断して送信";
+                actionBtn.disabled = false;
+                actionBtn.innerText = "診断";
             }
         }, 'image/jpeg', 0.8);
     }
 </script>
+
+</body>
+</html>
